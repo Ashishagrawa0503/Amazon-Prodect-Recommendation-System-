@@ -1,0 +1,51 @@
+import pandas as pd
+import numpy as np
+import nltk
+
+df = pd.read_csv('/content/amazon_product.csv')
+df.head()
+
+df = df.drop('id',axis=1)
+
+df.info()
+
+#definig the function that tokenize and stam the title and description colums
+
+df['Title'][1]
+
+from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
+import nltk
+nltk.download('punkt_tab')
+
+ps=PorterStemmer()
+def stemming(text):
+  
+  text=word_tokenize(text.lower())
+  
+  text = [ps.stem(word) for word in text] 
+  return " ".join(text)
+
+ 
+
+df['stemmed_tokens'] = df.apply(lambda row: stemming(str(row['Title']) + ' ' + str(row['Description'])), axis=1)
+
+df.head()
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+tfidvectorizer = TfidfVectorizer()
+
+def cosine_sim(txt1,txt2):
+    tfid_matrix = tfidvectorizer.fit_transform([txt1,txt2])
+    return cosine_similarity(tfid_matrix)[0][1]
+
+def search_product(query):
+    stemmed_query = stemming(query)
+    #calcualting cosine similarity between query and stemmed tokens columns
+    df['similarity'] = df['stemmed_tokens'].apply(lambda x:cosine_sim(stemmed_query,x))
+    res = df.sort_values(by=['similarity'],ascending=False).head(10)[['Title','Description','Category']]
+    return res
+
+search_product(' PURELL ES8 Professional HEALTHY SOAP Foam Refill, Fresh Scent Fragrance, 1200 mL Soap Refill for PURELL ES8 Touch-Free Dispenser (Pack of 2) - 7777-02 ')
